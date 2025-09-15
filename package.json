@@ -1,0 +1,73 @@
+{
+  "name": "tallyprime-js-sdk",
+  "version": "1.0.0",
+  "description": "A comprehensive JavaScript SDK for TallyPrime integration with XML-RPC and ODBC API support",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node src/index.js",
+    "build": "echo \"No build process required\"",
+    "lint": "eslint src/**/*.js",
+    "docs": "jsdoc -c jsdoc.json",
+    "examples": "node examples/basic-usage.js",
+    "test:coverage": "c8 npm test",
+    "test:integration": "mocha test/integration/**/*.test.js",
+    "prepublishOnly": "echo Ready to publish"
+  },
+  "keywords": [
+    "tally",
+    "tallyprime",
+    "accounting",
+    "erp",
+    "xml-rpc",
+    "odbc",
+    "sdk",
+    "javascript",
+    "nodejs",
+    "api",
+    "integration",
+    "finance",
+    "inventory",
+    "ledger",
+    "voucher"
+  ],
+  "author": "tanmayswk",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yourusername/tallyprime-js-sdk.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yourusername/tallyprime-js-sdk/issues"
+  },
+  "homepage": "https://github.com/yourusername/tallyprime-js-sdk#readme",
+  "dependencies": {
+    "axios": "^1.12.2",
+    "xml2js": "^0.6.2"
+  },
+  "devDependencies": {
+    "c8": "^8.0.1",
+    "eslint": "^8.50.0",
+    "jest": "^29.7.0",
+    "jsdoc": "^4.0.2",
+    "mocha": "^10.2.0"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "exports": {
+    ".": "./src/index.js",
+    "./connector": "./src/connector/TallyConnector.js",
+    "./services": "./src/services/index.js",
+    "./utils": "./src/utils/index.js"
+  },
+  "files": [
+    "src/**/*",
+    "LICENSE",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  }
+}

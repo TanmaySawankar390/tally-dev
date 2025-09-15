@@ -1,0 +1,40 @@
+# Development files
+.git
+.gitignore
+.eslintrc.json
+
+# Test files
+test/
+tests/
+*.test.js
+coverage/
+
+# Development tools
+.vscode/
+.idea/
+
+# Node modules (already ignored by npm by default)
+node_modules/
+
+# Log files
+*.log
+logs/
+
+# Environment files
+.env
+.env.local
+
+# Build artifacts
+dist/
+build/
+
+# Documentation source (keep compiled docs)
+docs/source/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+tmp/
+temp/
