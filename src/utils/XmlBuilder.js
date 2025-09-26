@@ -52,9 +52,24 @@ ${filterXml}
      * @param {string} dataXml - Data to import
      * @returns {string} Import request XML
      */
-    static buildImportRequest(dataXml) {
+    static buildImportRequest(dataXml, options = {}) {
+        const reportName = options.reportName || 'All Masters';
+        const companyName = options.companyName || process.env.TALLY_COMPANY || '';
+
+        const staticVars = companyName
+            ? `
+                <STATICVARIABLES>
+                    <SVCURRENTCOMPANY>${this.escapeXml(companyName)}</SVCURRENTCOMPANY>
+                </STATICVARIABLES>`
+            : '';
+
         const bodyContent = `<IMPORTDATA>
-            ${dataXml}
+            <REQUESTDESC>
+                <REPORTNAME>${reportName}</REPORTNAME>${staticVars}
+            </REQUESTDESC>
+            <REQUESTDATA>
+                ${dataXml}
+            </REQUESTDATA>
         </IMPORTDATA>`;
 
         return this.buildEnvelope('Import Data', bodyContent);
@@ -81,51 +96,14 @@ ${filterXml}
         }
 
         return `<TALLYMESSAGE xmlns:UDF="TallyUDF">
-            <LEDGER NAME="${this.escapeXml(name)}" RESERVEDNAME="">
-                <OLDAUDITENTRYIDS.LIST TYPE="Number">
-                    <OLDAUDITENTRYIDS>-1</OLDAUDITENTRYIDS>
-                </OLDAUDITENTRYIDS.LIST>
-                <GUID></GUID>
+            <LEDGER NAME="${this.escapeXml(name)}" ACTION="Create" RESERVEDNAME="">
+                <NAME>${this.escapeXml(name)}</NAME>
                 <PARENT>${this.escapeXml(parent)}</PARENT>
                 <ALIAS>${this.escapeXml(alias || '')}</ALIAS>
-                <USEFORVAT>No</USEFORVAT>
-                <TAXCLASSIFICATIONNAME/>
-                <TAXTYPE>Others</TAXTYPE>
-                <LEDADDLALLOCTYPE/>
-                <GSTTYPE/>
-                <APPROPRIATEFOR/>
-                <SERVICECATEGORY/>
-                <EXCISELEDGERCLASSIFICATION/>
-                <EXCISEDUTYTYPE/>
-                <EXCISENATUREOFPURCHASE/>
-                <LEDGERFBTCATEGORY/>
-                <GST.REGISTRATION.TYPE/>
-                <VATAPPLICABLE/>
-                <VATAPPLICABLE>Applicable</VATAPPLICABLE>
-                <ISBILLWISEON>No</ISBILLWISEON>
-                <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
-                <ISINTERESTON>No</ISINTERESTON>
-                <ALLOWINMOBILE>No</ALLOWINMOBILE>
-                <ISCOSTTRACKINGON>No</ISCOSTTRACKINGON>
-                <ISBENEFICIARYCODEON>No</ISBENEFICIARYCODEON>
-                <ISUPDATINGTARGETID>No</ISUPDATINGTARGETID>
-                <ASORIGINAL>Yes</ASORIGINAL>
-                <ISCONDENSED>No</ISCONDENSED>
+                <ISBILLWISEON>${openingBalance && openingBalance.isBillWise ? 'Yes' : 'No'}</ISBILLWISEON>
                 <AFFECTSSTOCK>No</AFFECTSSTOCK>
-                <USEFORADVPAYMENT>No</USEFORADVPAYMENT>
-                <USEFORCOMPOUND>No</USEFORCOMPOUND>
-                <USEFORVOUCHERTYPEVALIDATION>No</USEFORVOUCHERTYPEVALIDATION>
-                <USEFORBILLWISEBALANCE>No</USEFORBILLWISEBALANCE>
-                <USEFORGODOWN>No</USEFORGODOWN>
-                <USEFORADVVOUCHERTYPEMAPPING>No</USEFORADVVOUCHERTYPEMAPPING>
-                <USEFORSCHEDULETYPEVALIDATION>No</USEFORSCHEDULETYPEVALIDATION>
-                <USEFORKIPADVPAYMENT>No</USEFORKIPADVPAYMENT>
-                <USEFORCREDITDAYSCHK>No</USEFORCREDITDAYSCHK>
-                <USEFORBANKRECONCILIATION>No</USEFORBANKRECONCILIATION>
-                <USEFOREXCISE>No</USEFOREXCISE>
-                <USEFORGAINLOSS>No</USEFORGAINLOSS>
-                <USEFORPURCHASETAX>No</USEFORPURCHASETAX>
-                <USEFORVATPRODUCTTAX>No</USEFORVATPRODUCTTAX>${openingBalanceXml}
+                <USEFORVAT>No</USEFORVAT>
+                ${openingBalanceXml}
             </LEDGER>
         </TALLYMESSAGE>`;
     }
@@ -442,6 +420,58 @@ ${filterXml}
         </EXPORTDATA>`;
 
         return this.buildEnvelope('Export Data', bodyContent);
+    }
+
+    /**
+     * Build minimal Group create XML
+     * @param {{name:string,parent:string}} groupData
+     */
+    static buildGroupXml(groupData) {
+        const { name, parent } = groupData;
+        return `<TALLYMESSAGE xmlns:UDF="TallyUDF">
+            <GROUP NAME="${this.escapeXml(name)}" ACTION="Create">
+                <NAME.LIST>
+                    <NAME>${this.escapeXml(name)}</NAME>
+                </NAME.LIST>
+                <PARENT>${this.escapeXml(parent)}</PARENT>
+            </GROUP>
+        </TALLYMESSAGE>`;
+    }
+
+    /**
+     * Build a TDL-based collection export request (robust across editions)
+     * @param {string} collectionName - Friendly ID for the collection (e.g., 'Group List')
+     * @param {string} type - Tally object type (e.g., 'Group', 'Ledger')
+     * @param {string[]} fetchFields - Fields to fetch (e.g., ['NAME','PARENT'])
+     * @returns {string} XML envelope ready to send
+     */
+    static buildTDLCollectionRequest(collectionName, type, fetchFields = []) {
+        const id = this.escapeXml(collectionName);
+        const collType = this.escapeXml(type);
+        const fetchLine = fetchFields.length > 0 ? `<FETCH>${fetchFields.join(',')}</FETCH>` : '';
+
+        // Match user-provided working example structure
+        return `<?xml version="1.0" encoding="UTF-8"?>
+<ENVELOPE>
+    <HEADER>
+        <VERSION>1</VERSION>
+        <TALLYREQUEST>Export Data</TALLYREQUEST>
+        <TYPE>Collection</TYPE>
+        <ID>${id}</ID>
+    </HEADER>
+    <BODY>
+        <DESC>
+            <TDL>
+                <TDLMESSAGE>
+                    <COLLECTION NAME="${id}" ISINITIALIZE="Yes">
+                        <TYPE>${collType}</TYPE>
+                        ${fetchLine}
+                    </COLLECTION>
+                </TDLMESSAGE>
+            </TDL>
+        </DESC>
+    </BODY>
+</ENVELOPE>`;
     }
 }
 

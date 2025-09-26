@@ -50,7 +50,7 @@ export class LedgerService {
 
         try {
             const ledgerXml = XmlBuilder.buildLedgerXml(ledgerData);
-            const importXml = XmlBuilder.buildImportRequest(ledgerXml);
+            const importXml = XmlBuilder.buildImportRequest(ledgerXml, { reportName: 'All Masters', companyName: process.env.TALLY_COMPANY });
             
             const response = await this.connector.sendRequest(importXml);
             
@@ -130,7 +130,8 @@ export class LedgerService {
                 requestFilters.GROUP = filters.group;
             }
 
-            const exportXml = XmlBuilder.buildCollectionRequest('Ledger', requestFilters);
+            // Prefer robust TDL collection request
+            const exportXml = XmlBuilder.buildTDLCollectionRequest('Ledger List', 'Ledger', ['NAME','PARENT']);
             const response = await this.connector.sendRequest(exportXml);
 
             let ledgers = this._parseLedgerListResponse(response.data);
@@ -195,7 +196,7 @@ export class LedgerService {
             // Build update XML (similar to create, but with ACTION="Alter")
             const ledgerXml = XmlBuilder.buildLedgerXml(updatedLedgerData);
             const updateXml = ledgerXml.replace('ACTION="Create"', 'ACTION="Alter"');
-            const importXml = XmlBuilder.buildImportRequest(updateXml);
+            const importXml = XmlBuilder.buildImportRequest(updateXml, { reportName: 'All Masters', companyName: process.env.TALLY_COMPANY });
             
             const response = await this.connector.sendRequest(importXml);
             
@@ -242,7 +243,7 @@ export class LedgerService {
                 </LEDGER>
             </TALLYMESSAGE>`;
             
-            const importXml = XmlBuilder.buildImportRequest(deleteXml);
+            const importXml = XmlBuilder.buildImportRequest(deleteXml, { reportName: 'All Masters', companyName: process.env.TALLY_COMPANY });
             const response = await this.connector.sendRequest(importXml);
             
             return {
@@ -366,17 +367,22 @@ export class LedgerService {
         const envelope = responseData.ENVELOPE || responseData;
         const body = envelope.BODY || envelope;
         
-        if (body.EXPORTDATA && body.EXPORTDATA.REQUESTDATA) {
-            const ledgers = body.EXPORTDATA.REQUESTDATA.TALLYMESSAGE || [];
-            const ledgerArray = Array.isArray(ledgers) ? ledgers : [ledgers];
-            
-            return ledgerArray.map(ledger => ({
-                name: ledger.NAME || '',
-                parent: ledger.PARENT || '',
-                alias: ledger.ALIAS || '',
-                isActive: ledger.ISACTIVE !== 'No'
-            }));
-        }
+        // Handle TDL Collection response: top-level is RESPONSE/ or COLLECTION dump
+        const tdlNodes = body?.DESC || body?.COLLECTION || body?.TALLYMESSAGE;
+        const exportData = body.EXPORTDATA && body.EXPORTDATA.REQUESTDATA && body.EXPORTDATA.REQUESTDATA.TALLYMESSAGE;
+        const nodes = exportData || tdlNodes || [];
+        const arr = Array.isArray(nodes) ? nodes : [nodes];
+
+        return arr
+            .map(n => n || {})
+            .map(node => ({
+                name: node.NAME || node.LedgerName || node.$NAME || '',
+                parent: node.PARENT || node.Parent || '',
+                alias: node.ALIAS || node.Alias || '',
+                isActive: node.ISACTIVE ? node.ISACTIVE !== 'No' : true
+            }))
+            .filter(x => x.name);
+        
 
         return [];
     }

@@ -107,3 +107,6 @@ docs/build/
 # Test results
 test-results.xml
 coverage.xml
+
+WARP.md
+examples/

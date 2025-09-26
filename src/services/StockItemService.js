@@ -135,7 +135,7 @@ export class StockItemService {
                 requestFilters.GROUP = filters.group;
             }
 
-            const exportXml = XmlBuilder.buildCollectionRequest('Stock Item', requestFilters);
+            const exportXml = XmlBuilder.buildTDLCollectionRequest('Stock Item List', 'Stock Item', ['NAME','PARENT']);
             const response = await this.connector.sendRequest(exportXml);
 
             let stockItems = this._parseStockItemListResponse(response.data);

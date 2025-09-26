@@ -35,7 +35,7 @@ export class CompanyService {
                 filters.ACTIVEONLY = 'Yes';
             }
 
-            const exportXml = XmlBuilder.buildCollectionRequest('Companies', filters);
+            const exportXml = XmlBuilder.buildTDLCollectionRequest('Company List', 'Company', ['NAME']);
             const response = await this.connector.sendRequest(exportXml);
 
             let companies = this._parseCompanyListResponse(response.data);
